@@ -1,4 +1,6 @@
 {
+    "sound": "assets/snd/explosion.ogg",
+    "sound_clash": "assets/snd/clash.ogg",
     "image": "assets/img/explosion.png",
     "animations": {
         "number_frames": 8,

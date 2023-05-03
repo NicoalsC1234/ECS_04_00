@@ -1,4 +1,5 @@
 {
+    "sound": "assets/snd/movement.ogg",
     "image": "assets/img/player.png",
     "animations": {
         "number_frames": 4,

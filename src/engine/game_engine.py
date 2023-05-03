@@ -26,6 +26,7 @@ from src.ecs.components.tags.c_tag_bullet import CTagBullet
 from src.ecs.components.c_input_command import CInputCommand, CommandPhase
 
 from src.create.prefab_creator import create_enemy_spawner, create_input_player, create_player_square, create_bullet
+from src.engine.service_locator import ServiceLocator
 
 
 class GameEngine:
@@ -37,6 +38,8 @@ class GameEngine:
         self.screen = pygame.display.set_mode(
             (self.window_cfg["size"]["w"], self.window_cfg["size"]["h"]),
             pygame.SCALED)
+        
+        
 
         self.clock = pygame.time.Clock()
         self.is_running = False
@@ -48,6 +51,10 @@ class GameEngine:
         self.ecs_world = esper.World()
 
         self.num_bullets = 0
+
+        self.score = 0
+
+        self._paused = False
 
     def _load_config_files(self):
         with open("assets/cfg/window.json", encoding="utf-8") as window_file:
@@ -64,6 +71,7 @@ class GameEngine:
             self.explosion_cfg = json.load(explosion_file)
 
     def run(self) -> None:
+    
         self._create()
         self.is_running = True
         while self.is_running:
@@ -100,9 +108,10 @@ class GameEngine:
         system_screen_player(self.ecs_world, self.screen)
         system_screen_bullet(self.ecs_world, self.screen)
 
-        system_collision_enemy_bullet(self.ecs_world, self.explosion_cfg)
-        system_collision_player_enemy(self.ecs_world, self._player_entity,
-                                      self.level_01_cfg, self.explosion_cfg)
+        self.score += system_collision_enemy_bullet(self.ecs_world, self.explosion_cfg)
+        if system_collision_player_enemy(self.ecs_world, self._player_entity,
+                                      self.level_01_cfg, self.explosion_cfg):
+            self.score = 0
 
         system_explosion_kill(self.ecs_world)
 
@@ -116,31 +125,45 @@ class GameEngine:
 
     def _draw(self):
         self.screen.fill(self.bg_color)
+        blue = (0, 0, 128)
+        font = pygame.font.Font('freesansbold.ttf', 20)
+        text = font.render('Points: ' + str(self.score), True, blue, self.bg_color)
+        self.screen.blit(text, (50,10))
         system_rendering(self.ecs_world, self.screen)
         pygame.display.flip()
+        
+        
+        
 
     def _clean(self):
         self.ecs_world.clear_database()
         pygame.quit()
 
+    def _pause(self):
+        pass
+
     def _do_action(self, c_input: CInputCommand):
         if c_input.name == "PLAYER_LEFT":
             if c_input.phase == CommandPhase.START:
+                ServiceLocator.sounds_service.play(self.player_cfg["sound"])
                 self._player_c_v.vel.x -= self.player_cfg["input_velocity"]
             elif c_input.phase == CommandPhase.END:
                 self._player_c_v.vel.x += self.player_cfg["input_velocity"]
         if c_input.name == "PLAYER_RIGHT":
             if c_input.phase == CommandPhase.START:
+                ServiceLocator.sounds_service.play(self.player_cfg["sound"])
                 self._player_c_v.vel.x += self.player_cfg["input_velocity"]
             elif c_input.phase == CommandPhase.END:
                 self._player_c_v.vel.x -= self.player_cfg["input_velocity"]
         if c_input.name == "PLAYER_UP":
             if c_input.phase == CommandPhase.START:
+                ServiceLocator.sounds_service.play(self.player_cfg["sound"])
                 self._player_c_v.vel.y -= self.player_cfg["input_velocity"]
             elif c_input.phase == CommandPhase.END:
                 self._player_c_v.vel.y += self.player_cfg["input_velocity"]
         if c_input.name == "PLAYER_DOWN":
             if c_input.phase == CommandPhase.START:
+                ServiceLocator.sounds_service.play(self.player_cfg["sound"])
                 self._player_c_v.vel.y += self.player_cfg["input_velocity"]
             elif c_input.phase == CommandPhase.END:
                 self._player_c_v.vel.y -= self.player_cfg["input_velocity"]
@@ -148,3 +171,8 @@ class GameEngine:
         if c_input.name == "PLAYER_FIRE" and self.num_bullets < self.level_01_cfg["player_spawn"]["max_bullets"]:
             create_bullet(self.ecs_world, c_input.mouse_pos, self._player_c_t.pos,
                           self._player_c_s.area.size, self.bullet_cfg)
+            
+        if c_input.name == "PLAYER_PAUSE":
+            self._pause = not self._pause
+
+

@@ -30,3 +30,4 @@ def set_animation(c_a: CAnimation, anim_name: str):
             c_a.curr_anim = idx
             c_a.curr_anim_time = 0
             c_a.curr_frame = c_a.animations_list[c_a.curr_anim].start
+            
